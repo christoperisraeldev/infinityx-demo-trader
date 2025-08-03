@@ -5,9 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { ArrowUp, ArrowDown, Menu, History, Settings as SettingsIcon, DollarSign } from "lucide-react";
+import { ArrowUp, ArrowDown, History, Settings as SettingsIcon, DollarSign } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import TradingViewWidget from 'react-tradingview-widget';
+import { AdvancedRealTimeChart } from "react-ts-tradingview-widgets";
 
 interface Trade {
   id: string;
@@ -22,7 +22,7 @@ const TradingDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const username = location.state?.username || "Demo Trader";
-  
+
   const [balance, setBalance] = useState(1000000000); // Start with $1B
   const [tradeAmount, setTradeAmount] = useState("100");
   const [activeTrade, setActiveTrade] = useState<Trade | null>(null);
@@ -36,16 +36,16 @@ const TradingDashboard = () => {
       toast({
         title: "Invalid Amount",
         description: "Please enter a valid trade amount",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
 
     if (amount > balance) {
       toast({
-        title: "Insufficient Balance", 
+        title: "Insufficient Balance",
         description: "Your trade amount exceeds your available balance",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -54,14 +54,14 @@ const TradingDashboard = () => {
       id: Date.now().toString(),
       type,
       amount,
-      startTime: Date.now()
+      startTime: Date.now(),
     };
 
     setActiveTrade(trade);
     setCountdown(5);
 
     const countdownInterval = setInterval(() => {
-      setCountdown(prev => {
+      setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(countdownInterval);
           finishTrade(trade);
@@ -74,39 +74,39 @@ const TradingDashboard = () => {
     toast({
       title: `${type.toUpperCase()} Trade Started!`,
       description: `$${amount.toLocaleString()} - 5 seconds remaining`,
-      className: "glow-effect"
+      className: "glow-effect",
     });
   };
 
   const finishTrade = (trade: Trade) => {
     const isWin = Math.random() > 0.4; // 60% win rate
     const payout = isWin ? trade.amount * 0.8 : -trade.amount;
-    
+
     const completedTrade = {
       ...trade,
-      result: isWin ? "win" as const : "loss" as const,
-      payout
+      result: isWin ? "win" : "loss",
+      payout,
     };
 
     // Save to localStorage for trade history
     const existingTrades = JSON.parse(localStorage.getItem("tradeHistory") || "[]");
-    localStorage.setItem("tradeHistory", JSON.stringify([completedTrade, ...existingTrades].slice(0, 100)));
+    localStorage.setItem(
+      "tradeHistory",
+      JSON.stringify([completedTrade, ...existingTrades].slice(0, 100))
+    );
 
     if (isWin) {
-      setBalance(prev => prev + payout);
+      setBalance((prev) => prev + payout);
     } else {
-      setBalance(prev => Math.max(0, prev + payout));
+      setBalance((prev) => Math.max(0, prev + payout));
     }
-    
-    const resultClass = isWin ? "success-glow" : "loss-glow";
-    const resultMessage = isWin 
-      ? `You Won! +$${payout.toLocaleString()} profit`
-      : `You Lost! $${Math.abs(payout).toLocaleString()}`;
 
     toast({
       title: isWin ? "🎉 YOU WON!" : "💸 YOU LOST",
-      description: resultMessage,
-      className: resultClass
+      description: isWin
+        ? `You Won! +$${payout.toLocaleString()} profit`
+        : `You Lost! $${Math.abs(payout).toLocaleString()}`,
+      className: isWin ? "success-glow" : "loss-glow",
     });
 
     setActiveTrade(null);
@@ -116,21 +116,21 @@ const TradingDashboard = () => {
   const handleRecharge = () => {
     const amount = parseFloat(rechargeAmount.replace(/[,$]/g, ""));
     if (!isNaN(amount) && amount > 0) {
-      setBalance(prev => prev + amount);
+      setBalance((prev) => prev + amount);
       setRechargeAmount("");
       setIsRechargeOpen(false);
       toast({
         title: "Balance Recharged!",
         description: `Added $${amount.toLocaleString()} to your demo account`,
-        className: "success-glow"
+        className: "success-glow",
       });
     }
   };
 
   const formatBalance = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
@@ -141,7 +141,7 @@ const TradingDashboard = () => {
   const navigationItems = [
     { title: "History", icon: History, onClick: () => navigate("/history") },
     { title: "Settings", icon: SettingsIcon, onClick: () => navigate("/settings") },
-    { title: "Exit Demo", icon: DollarSign, onClick: () => navigate("/") }
+    { title: "Exit Demo", icon: DollarSign, onClick: () => navigate("/") },
   ];
 
   return (
@@ -182,9 +182,7 @@ const TradingDashboard = () => {
               {/* Center - Balance */}
               <div className="text-center">
                 <div className="text-sm text-muted-foreground mb-1">Balance</div>
-                <div className="balance-display text-2xl">
-                  {formatBalance(balance)}
-                </div>
+                <div className="balance-display text-2xl">{formatBalance(balance)}</div>
               </div>
 
               {/* Right side - Recharge Button */}
@@ -208,9 +206,15 @@ const TradingDashboard = () => {
                         onKeyPress={(e) => e.key === "Enter" && handleRecharge()}
                       />
                       <div className="grid grid-cols-3 gap-2">
-                        <Button variant="outline" onClick={() => setRechargeAmount("1000000")}>$1M</Button>
-                        <Button variant="outline" onClick={() => setRechargeAmount("1000000000")}>$1B</Button>
-                        <Button variant="outline" onClick={() => setRechargeAmount("1000000000000")}>$1T</Button>
+                        <Button variant="outline" onClick={() => setRechargeAmount("1000000")}>
+                          $1M
+                        </Button>
+                        <Button variant="outline" onClick={() => setRechargeAmount("1000000000")}>
+                          $1B
+                        </Button>
+                        <Button variant="outline" onClick={() => setRechargeAmount("1000000000000")}>
+                          $1T
+                        </Button>
                       </div>
                       <Button onClick={handleRecharge} className="w-full">
                         Recharge Balance
@@ -228,21 +232,7 @@ const TradingDashboard = () => {
             <div className="lg:col-span-2">
               <Card className="p-6 bg-chart-bg h-full">
                 <div className="h-[500px] w-full">
-                  <TradingViewWidget
-                    symbol="FX:EURUSD"
-                    theme="dark"
-                    locale="en"
-                    autosize
-                    hide_side_toolbar={false}
-                    allow_symbol_change={true}
-                    interval="5"
-                    toolbar_bg="hsl(var(--card))"
-                    enable_publishing={false}
-                    hide_top_toolbar={false}
-                    save_image={false}
-                    container_id="tradingview_chart"
-                    style="1"
-                  />
+                  <AdvancedRealTimeChart symbol="FX:EURUSD" theme="dark" autosize />
                 </div>
               </Card>
             </div>
@@ -276,9 +266,7 @@ const TradingDashboard = () => {
                       <div className="text-6xl font-bold text-primary countdown-animation mb-2">
                         {countdown}
                       </div>
-                      <div className="text-lg text-foreground mb-1">
-                        Trade ends in: {countdown}s
-                      </div>
+                      <div className="text-lg text-foreground mb-1">Trade ends in: {countdown}s</div>
                       <div className="text-sm text-muted-foreground">
                         {activeTrade?.type.toUpperCase()} - ${activeTrade?.amount.toLocaleString()}
                       </div>
