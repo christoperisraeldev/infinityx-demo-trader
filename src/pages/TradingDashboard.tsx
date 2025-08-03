@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ArrowUp, ArrowDown, Menu, History, Settings as SettingsIcon, DollarSign } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import TradingViewWidget from 'react-tradingview-widget';
 
 interface Trade {
   id: string;
@@ -25,34 +26,8 @@ const TradingDashboard = () => {
   const [tradeAmount, setTradeAmount] = useState("100");
   const [activeTrade, setActiveTrade] = useState<Trade | null>(null);
   const [countdown, setCountdown] = useState(0);
-  const [price, setPrice] = useState(1.2345);
-  const [candlesticks, setCandlesticks] = useState<Array<{time: string, price: number, type: 'bull' | 'bear'}>>([]);
   const [rechargeAmount, setRechargeAmount] = useState("");
   const [isRechargeOpen, setIsRechargeOpen] = useState(false);
-
-  // Price simulation
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const change = (Math.random() - 0.5) * 0.001;
-      const newPrice = Math.max(0.1, price + change);
-      setPrice(newPrice);
-      
-      const now = new Date();
-      const timeString = now.toLocaleTimeString();
-      
-      setCandlesticks(prev => {
-        const newCandle = { 
-          time: timeString, 
-          price: newPrice, 
-          type: change > 0 ? 'bull' as const : 'bear' as const 
-        };
-        const newData = [...prev, newCandle];
-        return newData.slice(-50); // Keep last 50 data points
-      });
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [price]);
 
   const startTrade = (type: "call" | "put") => {
     const amount = parseFloat(tradeAmount);
@@ -246,59 +221,26 @@ const TradingDashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
         {/* Left Side - Live Chart */}
         <div className="lg:col-span-2">
-          <Card className="p-6 h-96 bg-chart-bg">
-            {/* Chart Header */}
-            <div className="flex justify-between items-center mb-4">
-              <div className="flex items-center space-x-4">
-                <h3 className="text-xl font-bold text-foreground">EUR/USD</h3>
-                <div className="flex space-x-2">
-                  <Button variant="outline" size="sm">1m</Button>
-                  <Button variant="outline" size="sm" className="bg-primary text-primary-foreground">5m</Button>
-                  <Button variant="outline" size="sm">15m</Button>
-                  <Button variant="outline" size="sm">1H</Button>
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-2xl font-mono text-primary">
-                  {price.toFixed(5)}
-                </div>
-                <div className="text-sm text-success">+0.05%</div>
-              </div>
+          <Card className="p-6 bg-chart-bg">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-foreground">EUR/USD Live Chart</h2>
             </div>
-
-            {/* Chart Area */}
-            <div className="relative h-64 overflow-hidden">
-              {/* Grid Background */}
-              <div className="absolute inset-0 opacity-20">
-                <div className="grid grid-cols-10 grid-rows-8 h-full w-full">
-                  {Array.from({ length: 80 }).map((_, i) => (
-                    <div key={i} className="border border-chart-grid"></div>
-                  ))}
-                </div>
-              </div>
-              
-              {/* Price Line */}
-              <div 
-                className="absolute w-full h-0.5 bg-primary z-10"
-                style={{ top: `${50 + (1.2345 - price) * 10000}%` }}
+            <div className="h-[500px] w-full">
+              <TradingViewWidget
+                symbol="FX:EURUSD"
+                theme="dark"
+                locale="en"
+                autosize
+                hide_side_toolbar={false}
+                allow_symbol_change={true}
+                interval="5"
+                toolbar_bg="hsl(var(--card))"
+                enable_publishing={false}
+                hide_top_toolbar={false}
+                save_image={false}
+                container_id="tradingview_chart"
+                style="1"
               />
-
-              {/* Candlesticks */}
-              <div className="relative z-10 h-full flex items-end justify-center space-x-1 overflow-hidden">
-                {candlesticks.map((candle, index) => (
-                  <div
-                    key={index}
-                    className={`w-2 rounded-sm transition-all duration-300 ${
-                      candle.type === 'bull' ? 'bg-success' : 'bg-destructive'
-                    }`}
-                    style={{
-                      height: `${Math.min(90, Math.max(5, Math.abs((candle.price - 1.23) * 2000)))}%`,
-                      opacity: Math.max(0.3, 1 - (candlesticks.length - index) * 0.02)
-                    }}
-                    title={`${candle.time}: ${candle.price.toFixed(5)}`}
-                  />
-                ))}
-              </div>
             </div>
           </Card>
         </div>
